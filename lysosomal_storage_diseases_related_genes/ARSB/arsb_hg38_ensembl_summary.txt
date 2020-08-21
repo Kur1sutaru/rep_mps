@@ -1,0 +1,101 @@
+RepeatMasker version open-4.0.9
+Search Engine: HMMER [ 3.2.1 (June 2018) ]
+Master RepeatMasker Database: /u1/local/rmserver/share/Libraries/Dfam.hmm ( Complete Database: HMM-Dfam_3.0 )
+
+
+
+analyzing file /usr/local/rmserver/tmp/RM2_Homo_sapiens_ARSB_sequence.fa_1596744566
+identifying Simple Repeats in batch 1 of 4
+identifying full-length ALUs in batch 1 of 4
+identifying full-length interspersed repeats in batch 1 of 4
+identifying remaining ALUs in batch 1 of 4
+identifying most interspersed repeats in batch 1 of 4
+identifying Simple Repeats in batch 1 of 4
+refining SINE/Alu elements in batch 1 of 4
+identifying Simple Repeats in batch 2 of 4
+identifying full-length ALUs in batch 2 of 4
+identifying full-length interspersed repeats in batch 2 of 4
+identifying remaining ALUs in batch 2 of 4
+identifying most interspersed repeats in batch 2 of 4
+identifying Simple Repeats in batch 2 of 4
+refining SINE/Alu elements in batch 2 of 4
+identifying Simple Repeats in batch 3 of 4
+identifying full-length ALUs in batch 3 of 4
+identifying full-length interspersed repeats in batch 3 of 4
+identifying remaining ALUs in batch 3 of 4
+identifying most interspersed repeats in batch 3 of 4
+identifying Simple Repeats in batch 3 of 4
+refining SINE/Alu elements in batch 3 of 4
+identifying Simple Repeats in batch 4 of 4
+identifying full-length ALUs in batch 4 of 4
+identifying full-length interspersed repeats in batch 4 of 4
+identifying remaining ALUs in batch 4 of 4
+identifying most interspersed repeats in batch 4 of 4
+identifying Simple Repeats in batch 4 of 4
+refining SINE/Alu elements in batch 4 of 4
+processing output: 
+cycle 1 
+cycle 2 
+cycle 3 
+cycle 4 
+cycle 5 
+cycle 6 
+cycle 7 
+cycle 8 
+cycle 9 
+cycle 10 
+Generating output... 
+masking
+done
+948.35user 7.69system 8:25.17elapsed 189%CPU (0avgtext+0avgdata 792100maxresident)k
+11608inputs+138880outputs (0major+2155303minor)pagefaults 0swaps
+Summary:
+==================================================
+file name: RM2_Homo_sapiens_ARSB_sequence.fa_1596744566
+sequences:             1
+total length:     210079 bp  (210079 bp excl N/X-runs)
+GC level:         41.00 %
+bases masked:     121464 bp ( 57.82 %)
+==================================================
+               number of      length   percentage
+               elements*    occupied  of sequence
+--------------------------------------------------
+SINEs:              103        24206 bp   11.52 %
+      ALUs           66        18491 bp    8.80 %
+      MIRs           37         5715 bp    2.72 %
+
+LINEs:               91        66824 bp   31.81 %
+      LINE1          53        56414 bp   26.85 %
+      LINE2          31         8650 bp    4.12 %
+      L3/CR1          4          723 bp    0.34 %
+
+LTR elements:        31        16214 bp    7.72 %
+      ERVL            3         1341 bp    0.64 %
+      ERVL-MaLRs     18         9083 bp    4.32 %
+      ERV_classI      4         1878 bp    0.89 %
+      ERV_classII     1          998 bp    0.48 %
+
+DNA elements:        48        12368 bp    5.89 %
+     hAT-Charlie     32         8277 bp    3.94 %
+     TcMar-Tigger     8         1662 bp    0.79 %
+
+Unclassified:         1          146 bp    0.07 %
+
+Total interspersed repeats:   119758 bp   57.01 %
+
+
+Small RNA:            0            0 bp    0.00 %
+
+Satellites:           0            0 bp    0.00 %
+Simple repeats:      35         1266 bp    0.60 %
+Low complexity:       3          299 bp    0.14 %
+==================================================
+
+* most repeats fragmented by insertions or deletions
+  have been counted as one element
+                                                      
+
+The query species was assumed to be homo sapiens  
+RepeatMasker version open-4.0.9 , sensitive mode
+                                 
+run with nhmmscan version 3.2.1 (June 2018)

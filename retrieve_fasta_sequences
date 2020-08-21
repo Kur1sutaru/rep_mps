@@ -1,0 +1,1036 @@
+EASER v1.7.0 Emanuel Maldonado
+Home Page: http://easer.sourceforge.net/
+
+REQUIREMENTS
+============
+-Install PyCogent library from http://pycogent.org
+-See installation instructions from http://pycogent.org/install.html for other platforms (Windows or MacOS).
+
+RUNNING EASER
+=============
+Open terminal/console.
+Give execution permissions type "chmod 755 easer.py enamer.pl".
+
+Type easer.py -h to view all options.
+Type enamer.pl -h to view all options.
+
+easer.py can be run with "python easer.py" or just type "./easer.py" in local directory.
+enamer.pl can bve run separately with "perl enamer.pl" or just type "./enamer.py" in local directory.
+
+#!/usr/bin/python
+
+"""
+##########################################################
+# Script for retrieving sequences from EnsEMBL database  #
+# of several data types.                                 #
+#         -------------------------------------------    #
+#                      - Emanuel Maldonado - Mar 2011    #
+#         http://www.alunos.dcc.fc.up.pt/~c0773103/hp/   #
+###########################################################################
+#  Copyright (C) 2011  Emanuel Maldonado
+
+#  easer.py is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+
+#  easer.py is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+
+#  You should have received a copy of the GNU General Public License
+#  along with easer.py.  If not, see <http://www.gnu.org/licenses/>.
+###########################################################################
+"""
+
+import os
+import sys
+import re
+import getopt
+import pprint
+import subprocess
+PYCO = 1
+
+try:
+    from cogent.db.ensembl import Species, Compara
+    from cogent.core.alphabet import AlphabetError
+    SP = Species
+except ImportError:
+    print "Please, install PyCogent library!"
+    sys.exit(0)
+    PYCO = 0
+
+PP = pprint.PrettyPrinter(indent=4) # dont forget this!
+VERSION = "1.7.0 Feb 22nd, 2013"
+HDIR = os.path.expanduser('~')
+RELOPTSFL = HDIR+"/.relopts.txt"    #do not disturb!
+AMENDSPFL = HDIR+"/.amendspec.txt"  #do not disturb!
+
+CLEAN = 0             #rename
+ACCOUNT = None        #DB account
+RELEASE = 67          #DB RELEASE (can be updated to latest working)
+DATA = "c"            #DATA: GENOMIC, CDS, EXON, INTRON, PEPTIDE, UTR, FLANKING
+UTR = 0               #UTR : 5' , 3' , 5' and 3'
+FLANKING = 0          #FLANKING : 5';size ; 3';size ; 5'3';5'size;3'size
+STABLEID = ""         #EnsEMBL ID
+INFILE = ()           #EnsEMBL IDs from file
+USEALL = 0            #0: select from list 1: use all available
+SPGROUP = None        #file for group/taxon of species defined by user
+AMENDSP = 0                     
+RELATION = 'ortholog_one2one'   #default relationship
+RELATIONSHIPS = []              #list of relationships
+NUMREL = 0                      #number of relationships
+RELBOARD = ""                   #relationhips menu
+OUTFILE = "easer_sequences.fasta"
+VERBOSE = 0
+
+#--------------------------------------------------------
+def help_header(vers):
+    """ Help Menu Header """
+    print "\t*------------------------------------------------------------------*"
+    print "\t| EASER: EnsEMBL Easy Sequence Retriever                           |"
+    print "\t|                       - created by Emanuel Maldonado - Mar 2011  |"
+    print "\t*------------------------------------------------------------------*"
+    print "\t| Retrieve Sequences from EnsEMBL database.                        |"
+    print "\t|                                                                  |"
+    print "\t| Available Data Types:                                            |"
+    print "\t|    Genomic; Coding; Peptide; Exon; Intron;                       |"
+    print "\t|    UTR 5', 3' or both; Flanking 5', 3' or both                   |"
+    print "\t|                                                                  |"
+    if vers:
+        print "\tVERSION: "+VERSION+"\n"
+
+#--------------------------------------------------------
+def help_message(msg):
+    """ Help Menu """
+    print
+    print "\t*  --------------------------------------------------------------  *"
+    print "\t|   OPTIONS:                                                       |"
+    print "\t*  --------------------------------------------------------------  *"
+    print "\t| -a [arg]  Select species:   1: all species (-a 1) or             |"
+    print "\t|           filename: specific group of species (-a taxon.txt)     |"
+    print "\t|           (defaults to interactive mode if not selected)         |"
+    print "\t| -d [type] Select feature type:   (defaults to CDS)               |"
+    print "\t|           g: GENOMIC ; c: CDS ; p: PEPTIDE ; e: EXON ; i: INTRON |"
+    print "\t|           u5: UTR5 ; u3: UTR3 ; u53: UTR 5 and 3 ;               |"
+    print "\t|           f5;y: Flanking 5' ; f3;z: Flanking 3' ;                |"
+    print "\t|           f53;y;z: Flanking 5' and 3'                            |"
+    print "\t|           where y=(5' size), z=(3' size)                         |"
+    print "\t|           (eg.: -d i or -d u53 or -d f53;1000;500)               |"
+    print "\t| -s [arg]  Use one EnsEMBL ID (ENS...) or file for multiple IDs   |"
+    print "\t|           organized in one column.                               |"
+    print "\t| -R [nber] Use EnsEMBL relationship (defaults to ortholog_one2one)|"
+    print "\t| -r [nber] Use Release number (defaults to "+str(RELEASE)+")                    |"
+    print "\t| -o [file] Specify output (path)file. This will serve for both    |"
+    print "\t|           single ID and multiple IDs (option -s).                |"
+    print "\t| -c        Use enamer(.pl) script for renaming sequences in each  |"
+    print "\t|           output data file. Script can be located in any of the  |"
+    print "\t|           following places: a) current working directory         |"
+    print "\t|           b) /usr/bin/  c) /usr/local/bin/                       |"
+    print "\t|           ----------------------------------------------         |"
+    print "\t| -m        Amend species. If not found in list, but found in      |"
+    print "\t|           EnsEMBL website, you can add it by using this option.  |"
+    print "\t|           Just give Latin_name,Common_name                       |"
+    print "\t|            (eg.: 'Homo sapiens','Human')                         |"
+    print "\t| -v        Version                                                |"
+    print "\t| -h        Help                                                   |"
+    print "\t*  --------------------------------------------------------------  *"
+    print "\t|   OUTPUT:                                                        |"
+    print "\t*  --------------------------------------------------------------  *"
+    print "\t| All output from single EnsEMBL ID is written to a separate file, |"
+    print "\t|  in FASTA format. By default, EnsEMBL IDs are used as filenames. |"
+    print "\t|  The user can specify a different filename using -o option       |"
+    print "\t|  followed by (path)name of file.                                 |"
+    print "\t*------------------------------------------------------------------*"
+    print "\tRelationships:\t\t\t\tVERSION: "+VERSION+""+RELBOARD+"\n"
+    if msg:
+        print msg
+    sys.exit(1)
+
+#--------------------------------------------------------
+def version_message():
+    """ Version Menu """
+    print
+    print "\t*------------------------------------------------------------------*"
+    print "\t| EASER: EnsEMBL Easy Sequence Retriever                           |"
+    print "\t|                       - created by Emanuel Maldonado - Mar 2011  |"
+    print "\t*------------------------------------------------------------------*"
+    print "\t\t\t\t\t\tVERSION: "+VERSION
+    sys.exit(1)
+
+#--------------------------------------------------------
+def get_species_common_names():
+    """ Get species common names from latin names (sorted) """
+
+    specnames = SP.getSpeciesNames()
+    commnames = []
+    for spc in specnames:
+        commnames.append(SP.getCommonName(spc))
+    commnames.sort()
+    return commnames
+
+#--------------------------------------------------------
+def print_species_list(commnames):
+    """ Print species list """
+
+    print
+    if len(commnames) % 2 == 0:
+        rangel = range(len(commnames)/2)
+        ranger = range(len(commnames)/2, len(commnames))
+        maxl = maxllength(commnames[:(len(commnames)/2)])
+    else:
+        rangel = range((len(commnames)/2)+1)
+        ranger = range((len(commnames)/2)+1, len(commnames))
+        maxl = maxllength(commnames[:(len(commnames)/2)+1])
+ 
+    j_i = 0
+    for i in rangel:
+        space = " "*(1+maxl - len(commnames[i])) #produce space
+        fst = "\t"+str(i)+") "+commnames[i]+space
+        for j in ranger:
+            j = j + j_i
+            try: 
+                print fst, "\t"+str(j)+") "+commnames[j]
+            except StandardError:
+                print
+            break
+        j_i = j_i + 1
+    else:
+        print "\n",
+
+#--------------------------------------------------------
+def remove_repeated(lista, listb):
+    """ Builds final list without repeated elements """
+
+    lista = set(lista) 
+    listb = set(listb)
+    union = lista|listb
+    return list(union)
+
+#--------------------------------------------------------
+def remove_unexistent(chosen, chspace):
+    """ Builds final list with only common elements """
+
+    seta = set(chosen)
+    setb = set(chspace)
+    intersect = setb&seta #common
+    return list(intersect)
+
+#--------------------------------------------------------
+def get_user_choices(commnames, group=None):
+    """ Get user choices for selected species """
+
+    wanted = []
+    read = ""
+    lsize = 0
+    choicespace = range(len(commnames))
+    if not group:
+        print_species_list(commnames)
+        read = read_option(
+            "\n\tSelect from the list above which ones you want to download\n"+
+            "\t\t(type numbers separated by commas; [e]xit):",
+            r"^(\d+)|(\d)([\d,]+)(\d)$")
+        read = "["+read+"]"
+        read = eval(read) #turn into lists
+    else:
+        read = group
+    read = remove_repeated(read, [])
+    read = remove_unexistent(read, choicespace)
+    read.sort()
+    print "\n\tChosen (existing and not repeated):"
+    print "\t",
+    for i in range(len(read)):
+        prl = "\t"+str(read[i])+") "+commnames[read[i]]
+        print prl,
+        lsize += len(prl) + len(prl)/2 #8 spaces for each tab
+        wanted.append(commnames[read[i]])
+        if((i+1)%4 == 0): 
+            if(len(read) > i+1):
+                print "\n\t\t", "-"*lsize, "\n\t", 
+            lsize = 0
+    print "\n"
+    return wanted
+
+#--------------------------------------------------------
+def get_options():
+    """ Get user options from command-line or otherwise from standard input """
+    
+    global NUMREL
+
+    if PYCO:
+        NUMREL = getrelationships()
+    if len(sys.argv) == 1: # or sys.platform is "darwin": #MacOS/PyCogent
+        get_optionsby_stdin()
+    else:
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "hvcma:d:s:R:r:o:f:")
+            len(args)
+            if len(sys.argv) > 1:
+                opts = dict(opts)
+                errors(opts)
+                for opt, val in opts.iteritems():
+                    get_parser_options(opt, val)
+        except getopt.GetoptError:
+            help_message("****/ERR: Wrong or missing options!!!")
+
+#--------------------------------------------------------
+def get_parser_options(opt, val):
+    """ Set command-line options """
+
+    global STABLEID, USEALL, INFILE, OUTFILE, RELEASE
+    global RELATION, CLEAN, DATA, UTR, FLANKING, SPGROUP
+
+    if(opt == "-c"):
+        CLEAN = 1
+    elif(opt == "-a"):
+        try:
+            if int(val) == 1:
+                USEALL = 1
+                print "Using ALL available species..."
+        except ValueError:
+            if os.path.isfile(val):
+                SPGROUP = val
+                print "Using GROUP of species in file: "+val
+    elif(opt == "-d"):
+        DATA = val.strip()[0]
+        if DATA is "u":
+            UTR = val
+        elif DATA is "f":
+            FLANKING = val
+    elif(opt == "-s"): 
+        if os.path.isfile(val):
+            INFILE = read_ensemblids(val)
+            print "Using STABLEIDs FILE: found ", len(INFILE), " IDs"
+        else:
+            STABLEID = val
+            print "Using STABLEID: ", STABLEID
+    elif(opt == "-R"):
+        try:
+            val = int(val)
+        except ValueError:
+            print "****/ERR: Relationship option:: Not a Number!"
+        if val in range(NUMREL):
+            RELATION = RELATIONSHIPS[int(val)]
+        else:
+            print "****/ERR: Relationship option:: Not in range."
+            print "\tUse -h option for help to choose relationship"
+        print "Using RELATIONSHIP: ", RELATION
+    elif(opt == "-r"):
+        try:
+            val = int(val)
+            RELEASE = val
+        except ValueError:
+            print "****/ERR: Release option:: Not a Number!"
+        print "Using RELEASE: ", RELEASE
+    elif(opt == "-o"):
+        OUTFILE = val
+        print "Using OUTPUT FILE: ", OUTFILE
+
+#--------------------------------------------------------
+def errors(opts):
+    """ Too many branches """
+
+    if("-h" in opts):
+        help_message("")
+    if("-v" in opts):
+        version_message()
+    if("-m" in opts):
+        add_species()
+    if("-s" not in opts):
+        help_message("***//ERR: EnsEMBL ID/File missing! Use -s ID or IDs file.")
+    
+#--------------------------------------------------------
+def get_optionsby_stdin():
+    """ Set standard input options """
+
+    print 
+    read_amended()
+    add_species(0)
+    print
+    read_stable_id()
+    print
+    read_relation()
+    print
+    read_datatype()
+    print
+    read_release()
+    print
+    read_outfile()
+    print
+    read_enamer()
+    print
+    read_useall()
+
+#--------------------------------------------------------
+def read_option(msg="<Prompt Question> ([e]xit)?",
+    regexp="^[yY]", prompt="\tAnswer > ", exito="^[eE]$"):
+    """
+    Read option setting a question and proper regular expression for accepting answer
+    """
+
+    read = ""
+    print msg
+    print prompt,
+    while True:
+        read = sys.stdin.readline()
+        read = read.strip()
+        if(re.match(exito, read)):
+            sys.exit()
+        if(re.match(regexp, read)):
+            return read
+        print msg
+        print prompt,
+    return read
+
+#--------------------------------------------------------
+def read_stable_id():
+    """ Read Ensembl ID (Gene Symbol) from STDIN """
+
+    global STABLEID, INFILE
+
+    read = read_option(
+        "\tPlease give the ensembl ID for"+
+        " specific gene or path to file containing "
+        +"IDs (e.g. ENSG00000108511) ([e]xit):",
+        r"\w+", "\tSTABLEID/FILE > ")
+    if os.path.isfile(read):
+        INFILE = read_ensemblids(read)
+        print "\tUsing given file... found", len(INFILE),"IDs"
+    elif(read):
+        STABLEID = read
+
+#--------------------------------------------------------
+def read_ensemblids(efile):
+    """ Read ensembl IDs from given file """
+
+    infl = open(efile,"r")
+    lines = infl.readlines()
+    lines = [n.strip() for n in lines]
+    return lines
+
+#--------------------------------------------------------
+def get_spgroup(commnames):
+    """ Read group of species (as comma-sep numbers)
+    from user specified file """
+
+    infl = open(SPGROUP,"r")
+    vals = map(int, infl.readline().strip().split(","))
+    return get_user_choices(commnames, group=vals)
+
+#--------------------------------------------------------
+def read_relation():
+    """ Read choice for relationship from STDIN """
+
+    global RELATION
+
+    nset = str(range(NUMREL)).replace(', ', '')
+    regexp = "([\s]*)|("+(nset.replace(']', '])')) # one or none
+    read = read_option(
+        "\tPlease choose the relationship for genes (defaults to "+RELATION
+        +", if none is chosen) ([e]xit):"+RELBOARD, regexp, "\tRELATION > ")
+    if(re.match("^"+nset+"$", read)):
+        RELATION = RELATIONSHIPS[int(read)] #get relation for chosen
+    else:
+        print "\t** Defaults to relationship", RELATION
+
+#--------------------------------------------------------
+def read_datatype():
+    """ Read choice for feature type (genomic / cds / peptide / exon 
+    / intron / utr / flanking) from STDIN """
+
+    global DATA, UTR, FLANKING
+
+    read = read_option(
+        "\tChoose which data type to download:\n"+
+        "\t+---------------------------------------------------+\n"+
+        "\t| g => Genomic ------------------------------------ |\n"+
+        "\t| c => CDS ---------------------------------------- |\n"+
+        "\t| p => Peptide ------------------------------------ |\n"+
+        "\t| e => Exon --------------------------------------- |\n"+
+        "\t| i => Intron ------------------------------------- |\n"+
+        "\t| u5, u3, u53 => UTR5', UTR3', UTR 5' and 3' ------ |\n"+
+        "\t| f5;y, f3;z, f53;y;z => Upstream, Downstream, Both |\n"+
+        "\t|                    where y: 5' size , z: 3' size  |\n"+
+        "\t+---------------------------------------------------+\n"+
+        "\tSelect the respective option (e[x]it)?",
+        r"^[cgpei]|u(5|3|53)|((f5;[0-9]+)|(f3;[0-9]+)|(f53;[0-9]+;[0-9]+))",
+        exito=r"^[xX]$")
+    if(re.match("^[gcpei]$", read)):
+        DATA = read
+    elif(re.match("^u(3|5|53)$", read)):
+        DATA = read.strip()[0]
+        UTR = read
+    elif(re.match("((f5;[0-9]+)|(f3;[0-9]+)|(f53;[0-9]+;[0-9]+))", read)):
+        DATA = read.strip()[0]
+        FLANKING = read
+    else:
+        DATA = "c"
+        print "\t** Defaults to cds"
+
+#--------------------------------------------------------
+def read_release():
+    """ Read Ensembl release number from STDIN """
+
+    global RELEASE
+
+    read = read_option(
+        "\tPlease give the ensembl database release (defaults to "+
+        str(RELEASE)
+        +", if none is chosen) ([e]xit):", r"[\d]*", "\tRELEASE > ")
+    if(re.match("^(\d+)$", read)):
+        RELEASE = int(read)
+    else:
+        print "\t** Defaults to release", RELEASE
+
+#--------------------------------------------------------
+def read_outfile():
+    """ Read user choice for output file from STDIN """
+
+    global OUTFILE
+
+    read = read_option(
+        "\tDo you want to use [d]efault file ["+OUTFILE+
+        "] for Output, or choose [a]nother (d/a/[e]xit)?", r"^[dDaA]")
+    if(re.match("^[aA]", read)):
+        read = read_option(
+            "\t\tPlease insert the new (path)name "+
+            "for your file (name.ext) ([e]xit):",
+            r"(.+)(\.)(.+)", "\t\tOUTFILE > ")
+        if(read):
+            OUTFILE = read
+
+#--------------------------------------------------------
+def read_enamer():
+    """ Read user choice for enamer script use from STDIN """
+
+    global CLEAN
+
+    read = read_option(
+        "\tDo you want to use enamer for renaming sequences in data file "+
+        "(y/n/[e]xit)?", r"^[yYnN]")
+    if(re.match("^[yY]", read)):
+        CLEAN = 1
+
+#--------------------------------------------------------
+def read_specie(another):
+    """ Read user choice for amend species from STDIN """
+
+    if another:
+        read = read_option(
+            "\tDo you want to add another specie (y/n/[e]xit)?",
+            r"^[yYnN]")
+    else:
+        read = read_option(
+            "\tHave you found any species not in the list,"+
+            " that you want to add (y/n/[e]xit)?",
+            r"^[yYnN]")
+    if(re.match("^[yY]", read)):
+        specie = read_option(
+            "\t\tPlease insert the species as follows:"+
+            " latin_name,common_name ([e]xit):",
+            r"^([\w\.\s]+)(,)([\w\.\s]+)$", "\t\tADD_SPECIE > ")
+        return specie
+    return read
+
+#--------------------------------------------------------
+def read_useall():
+    """ Read user choice for using all or group (file)
+    of species available from STDIN """
+
+    global USEALL, SPGROUP
+
+    read = read_option(
+        "\tDo you want to use [a]ll species, "+
+        "select a [g]roup from file "+
+        "or [s]elect from list (a/g/s/[e]xit))?",
+        regexp="^[aAgGsS]")
+    if(re.match("^[aA]", read)):
+        USEALL = 1
+    elif(re.match("^[gG]", read)):
+        read = read_option(
+            "\t\tPlease insert your (path)name"+
+            " for your file specifing the species (e.g.:mammals.txt) ([e]xit):",
+            r"(.+)(\.)(.+)", "\t\tGROUPFILE > ")
+        read = read.strip()
+        if os.path.isfile(read):
+            SPGROUP = read
+
+#--------------------------------------------------------
+def writeto_file(content, exitv=1, verb=1):
+    """ Write found data to file """
+
+    global OUTFILE
+
+    if os.path.isfile(OUTFILE): #file exists
+        if os.path.getsize(OUTFILE) > 1: #has content
+            read = read_option(
+                "\tThe file ["+OUTFILE+"] exists and is not empty.\n\t"+
+                "Do you want to [o]verwrite or choose [a]nother (o/a/[e]xit)?",
+                r"^[oOaA]")
+            if(re.match("^[aA]", read)):
+                read = read_option(
+                    "\t\tPlease insert the new (path)name"+
+                    " for your file (name.ext) ([e]xit):",
+                    r"(.+)(\.)(.+)", "\t\tOUTFILE > ")
+                if(read):
+                    OUTFILE = read.strip(" \n\t")
+                    writeto_file(content, exitv, 0)
+                    
+    outputfile = open(OUTFILE, 'w')
+    content = content + "\n"
+    outputfile.writelines(content)
+    outputfile.close()
+    if verb:
+        print "\tContent written to [", OUTFILE, "]."
+    if exitv:
+        sys.exit(exitv)
+
+#--------------------------------------------------------
+def getrelationships():
+    """ Get relationships and save to file for further faster use """
+
+    global RELATIONSHIPS, RELBOARD, NUMREL, OUTFILE
+
+    if(os.path.isfile(RELOPTSFL)) and os.path.getsize(RELOPTSFL) > 1:
+        infl = open(RELOPTSFL,"r")
+        lines = infl.readlines()
+        RELATIONSHIPS = eval(lines[0].rstrip())
+        NUMREL = len(RELATIONSHIPS)
+        del lines[0]
+        RELBOARD = "\n"
+        for i in lines:
+            RELBOARD += str(i)
+        RELBOARD = RELBOARD.rstrip()
+    else:
+        print "Wait, retrieving information...."
+        compara = Compara(['human'], RELEASE)
+        distinctrel = compara.getDistinct('relationship')
+        distinctrel.sort()
+        maxl = maxllength(distinctrel)
+        tra = "-"*(maxl+5) # 3char + space bef and aft
+        board = "\n\t*"+tra+"*\n"
+        index = ""
+        for i in range(len(distinctrel)):
+            space = " "*(maxl-len(distinctrel[i]))
+            index = " "+str(i) if(len(str(i))==1) else str(i)
+            board += "\t| "+index+") "+distinctrel[i]+space+"|\n"
+        board += "\t*"+tra+"*\n"
+        tmp = OUTFILE
+        OUTFILE = RELOPTSFL
+        writeto_file(str(distinctrel) + board, 0, 0)
+        OUTFILE = tmp
+        (RELATIONSHIPS, RELBOARD) = (distinctrel, board)
+    return len(RELATIONSHIPS)
+
+#--------------------------------------------------------
+def maxllength(lst):
+    """ Define maximum length for given list """
+
+    maxl = 0
+    for i in lst:
+        if(len(i) > maxl):
+            maxl = len(i)
+    return maxl + 1
+
+#--------------------------------------------------------
+def add_species(exitv=1):
+    """ Add user found species to species list (Amend species) """
+
+    if exitv:
+        print
+    read = read_specie(0)
+    while(re.match("(.+)(,)(.+)", read)):
+        read = read.rstrip(',')
+        read = read.rstrip('\s')
+        read = read.lstrip(',')
+        read = read.lstrip('\s')
+        read = read.replace('\t','')
+        (latin, common) = read.split(',')
+        print "\t ADDING SPECIE: ["+latin+"] ["+common+"]"
+        save_species(latin, common)
+        read = read_specie(1)
+    if exitv:
+        sys.exit(1)
+
+#--------------------------------------------------------
+def save_species(latin, common):
+    """ Save user entered species to user output file """
+     
+    strg = latin+","+common+"\n"
+    fle = open(AMENDSPFL,"a")
+    fle.writelines([strg])
+    fle.close()
+    SP.amendSpecies(latin, common)     
+
+#--------------------------------------------------------
+def read_amended():
+    """ Read species from output file and add to list """
+
+    if os.path.isfile(AMENDSPFL): #file exists
+        afl = open(AMENDSPFL,"r")
+        lines = afl.readlines()
+        afl.close()
+        for lain in lines:
+            lain = lain.rstrip('\n')
+            latin, common = lain.split(",")
+            SP.amendSpecies(latin, common)
+
+#--------------------------------------------------------
+def getdata(wanted):
+    """ Get EnsEMBL data: Genes, Species Latin Names, Species Common Names"""
+
+    compara = Compara(wanted, RELEASE, ACCOUNT)
+    genes = compara.getRelatedGenes(StableId=STABLEID, Relationship=RELATION)
+    latin_names = [Species.getSpeciesName(n) for n in wanted]
+    latin_to_common = dict(zip(latin_names, wanted))
+
+    return genes, latin_names, latin_to_common
+
+#--------------------------------------------------------
+def getgenomicregions(wanted):
+    """ Get GENOMIC data from selected species """
+
+    genes = getdata(wanted)[0]
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        seqs = genes.getSeqCollection(feature_types='gene')
+        fas = seqs.toFasta()
+        writeto_file(fas, 0)
+    else:
+        print "\tNo sequences found for that STABLEID."
+
+#--------------------------------------------------------
+def getcodingsequences(wanted):
+    """ Get CDS data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    seq = gns.CanonicalTranscript.Cds.withoutTerminalStopCodon()
+                    seq.Name = '%s:%s:%s_%s' % \
+                        (latin_to_common[gns.genome.Species],
+                         gns.StableId, gns.Location, gns.Symbol)
+                    seqs += [seq]
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def getproteinsequences(wanted):
+    """ Get PEPTIDE data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    if re.match("protein_coding", gns.BioType):
+                        seq = gns.CanonicalTranscript.ProteinSeq
+                        seq.Name = '%s:%s:%s_%s' % \
+                            (latin_to_common[gns.genome.Species],
+                             gns.StableId, gns.Location, gns.Symbol)
+                        seqs += [seq]
+                    else:
+                        print "\t", gns.StableId, "is not protein coding..."
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def getexons(wanted):
+    """ Get EXON data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    exons = gns.CanonicalTranscript.Exons
+                    for exn in exons: # print exn.Seq
+                        seq = exn.Seq
+                        seq.Name = '%s:%s:%s:%s_%s_Exon%s' % \
+                            (latin_to_common[gns.genome.Species],
+                             gns.StableId, exn.StableId, gns.Location,
+                             gns.Symbol, exn.Rank)
+                        seqs += [seq]
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def getintrons(wanted):
+    """ Get INTRON data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    introns = gns.CanonicalTranscript.Introns
+                    for itrn in introns:
+                        print itrn
+                        istr = "{}".format(itrn)
+                        tid = istr[istr.index('=')+1:istr.index(',')] #tId
+                        seq = itrn.Seq
+                        seq.Name = '%s:%s:%s:%s_%s_Intron%s' % \
+                            (latin_to_common[gns.genome.Species],
+                             gns.StableId, tid, gns.Location,
+                             gns.Symbol, itrn.Rank)
+                        seqs += [seq]
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def getutr(wanted):
+    """ Get UTRs data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    utr3 = utr5 = ""
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    if UTR is "u5":
+                        utr5 = gns.CanonicalTranscript.Utr5
+                    elif UTR is "u3":
+                        utr3 = gns.CanonicalTranscript.Utr3
+                    else:
+                        utr5 = gns.CanonicalTranscript.Utr5
+                        utr3 = gns.CanonicalTranscript.Utr3
+
+                    if utr5:
+                        seq = utr5
+                        seq.Name = '%s:%s:%s_%s_UTR5' % \
+                            (latin_to_common[gns.genome.Species],
+                             gns.StableId, gns.Location, gns.Symbol)
+                        seqs += [seq]
+                    if utr3:
+                        seq = utr3
+                        seq.Name = '%s:%s:%s_%s_UTR3' % \
+                            (latin_to_common[gns.genome.Species],
+                             gns.StableId, gns.Location, gns.Symbol)
+                        seqs += [seq]
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def getupdown(wanted):
+    """ Get UP/DOWNstream data from selected species """
+
+    genes, latin_names, latin_to_common = getdata(wanted)
+    seqs = []
+    fasta = ""
+    vals = FLANKING.split(';')
+    variant = vals[0]
+    ups = int(vals[1])
+    downs = int(vals[2])
+    if genes:
+        orthoset = genes.getSpeciesSet()
+        print "\n\tFound "+str(len(orthoset))+" species/sequences."
+        if (orthoset != latin_names):
+            for gns in genes.Members:
+                if VERBOSE:
+                    print gns
+                try:
+                    if variant is "f5":
+                        variant = "upstream"
+                        gns.Location.Start = gns.Location.Start - ups
+                    elif variant is "f3":
+                        variant = "downstream"
+                        gns.Location.End = gns.Location.End + downs
+                    else:
+                        variant = "flanking"
+                        gns.Location.Start = gns.Location.Start - ups
+                        gns.Location.End = gns.Location.End + downs
+
+                    seq = gns.Seq
+                    seq.Name = '%s:%s:%s_%s_%s' % \
+                        (latin_to_common[gns.genome.Species],
+                         gns.StableId, gns.Location, gns.Symbol, variant)
+                    seqs += [seq]
+                except (AlphabetError, AssertionError):
+                    seqs = [] # exclude this gene
+                    break
+            else:
+                fasta = '\n'.join(s.toFasta() for s in seqs)
+                writeto_file(fasta, 0)
+    else:
+        print "\tNo sequences found for that STABLEID: ", STABLEID
+
+#--------------------------------------------------------
+def decidefeaturetype(wanted):
+    """ Decide which feature type to use, based on user selection """
+
+    if DATA is "g":
+        print "\tGetting Genomic regions..."
+        getgenomicregions(wanted)
+    elif DATA is "c":
+        print "\tGetting Coding regions..."
+        getcodingsequences(wanted)
+    elif DATA is "p":
+        print "\tGetting Peptide regions..."
+        getproteinsequences(wanted)
+    elif DATA is "e":
+        print "\tGetting Exon regions..."
+        getexons(wanted)
+    elif DATA is "i":
+        print "\tGetting Intron regions..."
+        getintrons(wanted)
+    elif DATA is "u":
+        print "\tGetting UTR regions..."
+        getutr(wanted)
+    elif DATA is "f":
+        print "\tGetting Flanking regions..."
+        getupdown(wanted)
+
+#--------------------------------------------------------
+def run_enamer():
+    """
+    Run enamer script (when available) to rename obtained sequences,
+    Script can be located in current directory, in /usr/bin/ or /usr/local/bin,
+    with or without extension (.pl)
+    
+    """
+    
+    if not os.path.isfile(OUTFILE) or os.stat(OUTFILE)[6]==0:
+        return
+    if os.path.isfile("enamer.pl"): #file exists
+        print "\n\tScript enamer.pl exists..."
+        print "\n\tUp and running!"
+        subprocess.call(["perl", "enamer.pl", "-i", OUTFILE, "-f", "-c"],
+                        shell=False)
+    elif os.path.isfile("enamer"): #file exists
+        print "\n\tScript enamer exists..."
+        print "\n\tUp and running!"
+        subprocess.call(["perl", "enamer", "-i", OUTFILE, "-f", "-c"],
+                        shell=False)
+    elif os.path.isfile("/usr/bin/enamer"):
+        print "\n\tScript /usr/bin/enamer exists..."
+        print "\n\tUp and running!"
+        subprocess.call(["perl", "/usr/bin/enamer", "-i", OUTFILE, "-f", "-c"],
+                        shell=False)
+    elif os.path.isfile("/usr/bin/enamer.pl"):
+        print "\n\tScript /usr/bin/enamer.pl exists..."
+        print "\n\tUp and running!"
+        subprocess.call(
+            ["perl", "/usr/bin/enamer.pl", "-i", OUTFILE, "-f", "-c"],
+            shell=False)
+    elif os.path.isfile("/usr/local/bin/enamer"):
+        print "\n\tScript /usr/local/bin/enamer exists..."
+        print "\n\tUp and running!"
+        subprocess.call(
+            ["perl", "/usr/local/bin/enamer", "-i", OUTFILE, "-f", "-c"],
+            shell=False)
+    elif os.path.isfile("/usr/local/bin/enamer.pl"):
+        print "\n\tScript /usr/local/bin/enamer.pl exists..."
+        print "\n\tUp and running!"
+        subprocess.call(
+            ["perl", "/usr/local/bin/enamer.pl", "-i", OUTFILE, "-f", "-c"],
+            shell=False)
+    else:
+        print "\n\tCould not find enamer(.pl) script..."
+
+#--------------------------------------------------------
+def main():
+    """ MAIN """
+
+    global STABLEID, OUTFILE
+
+    help_header(1)
+    print "Type "+sys.argv[0]+" -h for more information or options."
+    print "To install EASER on other operating systems,"
+    print "please follow PyCogent instructions in http://www.pycogent.org"
+    print "Using home directory: "+HDIR
+    if not PYCO:
+        sys.exit(0)
+    read_amended()
+    get_options()
+    wanted = commnames = get_species_common_names() #ALL
+    if SPGROUP:
+        wanted = get_spgroup(commnames) # GROUP
+    elif not USEALL:
+        wanted = get_user_choices(commnames) #DFLT: user selects
+    ids = INFILE if INFILE else [STABLEID]
+    out = OUTFILE[0:OUTFILE.index('.')]
+    print
+    i = 1
+    for ens in ids:
+        STABLEID = ens
+        if INFILE:
+            if re.match("^easer_", OUTFILE): #default => no -o option
+                OUTFILE = ens+".fas"
+            else:
+                OUTFILE = out+str(i)+".fas"
+                i = i + 1
+        elif re.match("^easer_", OUTFILE): #default => no -o option:
+            OUTFILE = ens+".fas" #default out for -s opt
+        print "\t=----------=", ens
+        decidefeaturetype(wanted)
+        OUTFILE = out
+        if CLEAN:
+            run_enamer()
+
+#--------------------------------------------------------
+if __name__ == "__main__":
+    main()

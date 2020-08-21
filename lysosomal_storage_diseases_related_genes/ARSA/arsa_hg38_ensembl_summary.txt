@@ -1,0 +1,80 @@
+RepeatMasker version open-4.0.9
+Search Engine: HMMER [ 3.2.1 (June 2018) ]
+Master RepeatMasker Database: /u1/local/rmserver/share/Libraries/Dfam.hmm ( Complete Database: HMM-Dfam_3.0 )
+
+
+
+analyzing file /usr/local/rmserver/tmp/RM2_Homo_sapiens_ARSA_sequence.fa_1596744412
+identifying Simple Repeats in batch 1 of 1
+identifying full-length ALUs in batch 1 of 1
+identifying full-length interspersed repeats in batch 1 of 1
+identifying remaining ALUs in batch 1 of 1
+identifying most interspersed repeats in batch 1 of 1
+identifying Simple Repeats in batch 1 of 1
+refining SINE/Alu elements in batch 1 of 1
+processing output: 
+cycle 1 
+cycle 2 
+cycle 3 
+cycle 4 
+cycle 5 
+cycle 6 
+cycle 7 
+cycle 8 
+cycle 9 
+cycle 10 
+Generating output... 
+masking
+done
+24.03user 2.76system 0:20.83elapsed 128%CPU (0avgtext+0avgdata 792060maxresident)k
+528inputs+4200outputs (0major+865007minor)pagefaults 0swaps
+Summary:
+==================================================
+file name: RM2_Homo_sapiens_ARSA_sequence.fa_1596744412
+sequences:             1
+total length:       6620 bp  (6620 bp excl N/X-runs)  
+GC level:         60.47 %
+bases masked:       2126 bp ( 32.11 %)
+==================================================
+               number of      length   percentage
+               elements*    occupied  of sequence
+--------------------------------------------------
+SINEs:                4         1029 bp   15.54 %
+      ALUs            3          919 bp   13.88 %
+      MIRs            1          110 bp    1.66 %
+
+LINEs:                1          161 bp    2.43 %
+      LINE1           0            0 bp    0.00 %
+      LINE2           1          161 bp    2.43 %
+      L3/CR1          0            0 bp    0.00 %
+
+LTR elements:         2          664 bp   10.03 %
+      ERVL            0            0 bp    0.00 %
+      ERVL-MaLRs      1          378 bp    5.71 %
+      ERV_classI      1          286 bp    4.32 %
+      ERV_classII     0            0 bp    0.00 %
+
+DNA elements:         0            0 bp    0.00 %
+     hAT-Charlie      0            0 bp    0.00 %
+     TcMar-Tigger     0            0 bp    0.00 %
+
+Unclassified:         0            0 bp    0.00 %
+
+Total interspersed repeats:     1854 bp   28.01 %
+
+
+Small RNA:            0            0 bp    0.00 %
+
+Satellites:           0            0 bp    0.00 %
+Simple repeats:       3          245 bp    3.70 %
+Low complexity:       1           27 bp    0.41 %
+==================================================
+
+* most repeats fragmented by insertions or deletions
+  have been counted as one element
+                                                      
+
+The query species was assumed to be homo sapiens  
+RepeatMasker version open-4.0.9 , sensitive mode
+                                 
+run with nhmmscan version 3.2.1 (June 2018)

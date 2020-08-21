@@ -1,0 +1,24 @@
+  bit   perc perc perc  query     position in query     matching  repeat            position in repeat
+score   div. del. ins.  sequence  begin end    (left)   repeat    class/family    begin  end    (left)  ID
+
+   81   24.7  5.4  2.3  4          1284  1449 (11415) C MER5B     DNA/hAT-Charlie    (6)    172      2   1  
+   31   36.9  2.6  9.1  4          1450  1599 (11265) + L2c       LINE/L2           3122   3262  (125)   2  
+   78   25.5  3.2  3.2  4          1979  2132 (10732) + MIR       SINE/MIR            56    209   (53)   3  
+   23   32.4  8.2 11.3  4          3548  3638  (9226) + MIRc      SINE/MIR            48    146  (122)   4  
+   55   27.1 12.7  6.0  4          3639  3651  (9213) C Charlie2a DNA/hAT-Charlie (2659)    202    186   5  
+  316    8.4  0.0  0.7  4          3653  3937  (8927) C AluSc     SINE/Alu          (26)    283      1   6  
+   23   32.4  8.2 11.3  4          3938  3978  (8886) + MIRc      SINE/MIR           147    189   (79)   4  
+   55   27.1 12.7  6.0  4          3979  4080  (8784) C Charlie2a DNA/hAT-Charlie (2676)    185     37   5  
+  183   18.9 25.8  0.9  4          5962  6228  (6636) C MSTD      LTR/ERVL-MaLR      (0)    396     64   7  
+  296   16.4  1.6  0.9  4          6242  6603  (6261) C MLT1A0    LTR/ERVL-MaLR      (5)    555      1   8  
+   17   35.4 12.6  3.8  4          6800  7031  (5833) C L2d2      LINE/L2           (36)   3389   3110   9  
+   18   26.8  3.1  1.5  4          7070  7133  (5731) + (TG)n     Simple_repeat        1     65    (0)  10  
+   22    3.9  0.0  0.0  4          7164  7190  (5674) + (GT)n     Simple_repeat        1     27    (0)  11  
+   20   27.5  1.4  2.9  4          7221  7289  (5575) + (GT)n     Simple_repeat        1     68    (0)  11  
+   15   34.9 14.9  2.3  4          7350  7598  (5266) C L2d2      LINE/L2          (453)   2966   2673   9  
+  257   20.4  2.5  3.9  4          7671  7828  (5036) C L1MA8     LINE/L1            (8)   6283   6129  12  
+  302    7.9  0.3  4.8  4          7829  8133  (4731) + AluSx3    SINE/Alu             2    293   (18)  13  
+  257   20.4  2.5  3.9  4          8135  8342  (4522) C L1MA8     LINE/L1          (163)   6128   5922  12  
+  292   12.5  0.0  3.3  4          8736  9047  (3817) + AluSx     SINE/Alu             1    302   (10)  14  
+   12    5.5  0.0  0.0  4         10987 11005  (1859) + (CAA)n    Simple_repeat        1     19    (0)  15  
+   24   36.3 14.2  4.9  4         12356 12468   (396) + MER5B     DNA/hAT-Charlie      4    126   (52)  16  
